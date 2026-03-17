@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liveness + Multi-Frame Face Login</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    max-width: 850px;
+    margin: 30px auto;
+    text-align: center;
+    background: #f4f4f4;
+}
+video, canvas{
+    width: 100%;
+    max-width: 520px;
+    border: 2px solid #333;
+    border-radius: 10px;
+}
+input, button{
+    padding: 10px;
+    margin: 10px 5px;
+    font-size: 16px;
+}
+#result, #instruction, #progress{
+    margin-top: 15px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+}
+.success{
+    color: green;
+    font-weight: bold;
+}
+.error{
+    color: red;
+    font-weight: bold;
+}
+pre{
+    text-align: left;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+</style>
+</head>
+<body>
+
+<h1>Face Authentication with Blink Liveness</h1>
+
+<input type="text" id="username" placeholder="Enter username">
+<br>
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<br>
+<button id="startCamera">Start Camera</button>
+<button id="startLiveness">Start Liveness Check</button>
+<button id="captureLogin" disabled>Login After Blink</button>
+
+<div id="instruction">Instruction will appear here.</div>
+<div id="progress">Progress will appear here.</div>
+<div id="result">Result will appear here.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const resultDiv = document.getElementById("result");
+const progressDiv = document.getElementById("progress");
+const instructionDiv = document.getElementById("instruction");
+const usernameInput = document.getElementById("username");
+const captureLoginBtn = document.getElementById("captureLogin");
+
+let streamStarted = false;
+let livenessPassed = false;
+let blinkCount = 0;
+let eyesClosedFrames = 0;
+let monitoringBlink = false;
+let streamRef = null;
+let detectionRunning = false;
+
+function sleep(ms){
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function distance(a, b){
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function eyeAspectRatio(upper, lower, left, right){
+    const vertical = distance(upper, lower);
+    const horizontal = distance(left, right);
+    return vertical / horizontal;
+}
+
+document.getElementById("startCamera").addEventListener("click", async () => {
+    try{
+        if (streamRef) {
+            streamRef.getTracks().forEach(track => track.stop());
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef = stream;
+        video.srcObject = stream;
+        streamStarted = true;
+        resultDiv.innerHTML = "Camera started successfully.";
+    }catch(error){
+        resultDiv.innerHTML = "Camera error: " + error.message;
+    }
+});
+
+const faceMesh = new FaceMesh({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+});
+
+faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+});
+
+faceMesh.onResults((results) => {
+    if (!monitoringBlink) return;
+
+    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0){
+        progressDiv.innerHTML = "No face detected.";
+        return;
+    }
+
+    const face = results.multiFaceLandmarks[0];
+
+    const leftEAR = eyeAspectRatio(face[159], face[145], face[33], face[133]);
+    const rightEAR = eyeAspectRatio(face[386], face[374], face[362], face[263]);
+    const avgEAR = (leftEAR + rightEAR) / 2;
+
+    progressDiv.innerHTML = `Blink monitor active. Eye ratio: ${avgEAR.toFixed(3)}`;
+
+    if (avgEAR < 0.18){
+        eyesClosedFrames += 1;
+    } else {
+        if (eyesClosedFrames >= 2){
+            blinkCount += 1;
+            instructionDiv.innerHTML = `Blink detected: ${blinkCount}`;
+        }
+        eyesClosedFrames = 0;
+    }
+
+    if (blinkCount >= 1){
+        monitoringBlink = false;
+        livenessPassed = true;
+        instructionDiv.innerHTML = `<span class="success">Liveness passed. You may now login.</span>`;
+        captureLoginBtn.disabled = false;
+        progressDiv.innerHTML = "Liveness successful. Camera remains active for capture.";
+    }
+});
+
+async function runFaceDetectionLoop() {
+    if (detectionRunning) return;
+    detectionRunning = true;
+
+    while (video.srcObject) {
+        try {
+            await faceMesh.send({ image: video });
+        } catch (e) {
+            console.log("Face mesh error:", e);
+        }
+        await sleep(120);
+    }
+
+    detectionRunning = false;
+}
+
+document.getElementById("startLiveness").addEventListener("click", async () => {
+    if (!streamStarted){
+        resultDiv.innerHTML = "Please start camera first.";
+        return;
+    }
+
+    blinkCount = 0;
+    eyesClosedFrames = 0;
+    livenessPassed = false;
+    captureLoginBtn.disabled = true;
+    monitoringBlink = true;
+
+    instructionDiv.innerHTML = "Please blink once to prove liveness.";
+    progressDiv.innerHTML = "Starting liveness monitoring...";
+
+    runFaceDetectionLoop();
+});
+
+document.getElementById("captureLogin").addEventListener("click", async () => {
+    const username = usernameInput.value.trim();
+
+    if (!username){
+        resultDiv.innerHTML = "Please enter username.";
+        return;
+    }
+
+    if (!video.srcObject){
+        resultDiv.innerHTML = "Please start camera first.";
+        return;
+    }
+
+    if (!livenessPassed){
+        resultDiv.innerHTML = "Please complete blink liveness check first.";
+        return;
+    }
+
+    const context = canvas.getContext("2d");
+    const formData = new FormData();
+    formData.append("username", username);
+
+    canvas.width = video.videoWidth || 520;
+    canvas.height = video.videoHeight || 390;
+
+    progressDiv.innerHTML = "Capturing 3 frames... Please keep your face steady.";
+
+for (let i = 0; i < 3; i++) {
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise(resolve => {
+        canvas.toBlob(resolve, "image/jpeg");
+    });
+
+    formData.append("images", blob, `frame_${i + 1}.jpg`);
+    progressDiv.innerHTML = `Captured frame ${i + 1} of 3`;
+    await sleep(500);
+}
+
+    progressDiv.innerHTML = "Sending frames for verification...";
+
+    try{
+        const response = await fetch("/api/login-multiframe/", {
+            method: "POST",
+            body: formData
+        });
+
+        const contentType = response.headers.get("content-type");
+        let data;
+
+        if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            progressDiv.innerHTML = "";
+            resultDiv.innerHTML = "Server returned non-JSON response:<br><pre>" + text.substring(0, 700) + "</pre>";
+            return;
+        }
+
+        resultDiv.innerHTML = `
+            <strong>Status:</strong> ${data.status || data.error}<br>
+            <strong>Average Distance:</strong> ${data.average_distance ?? "N/A"}<br>
+            <strong>Valid Frames:</strong> ${data.valid_frames ?? "N/A"}<br>
+            <strong>Threshold:</strong> ${data.threshold ?? "N/A"}<br>
+            <strong>All Distances:</strong> ${
+                data.all_distances ? data.all_distances.join(", ") : "N/A"
+            }
+        `;
+
+        progressDiv.innerHTML = "";
+
+        if (data.status === "Access Granted"){
+            setTimeout(() => {
+                window.location.href = "/dashboard/";
+            }, 1500);
+        }
+
+    }catch(error){
+        progressDiv.innerHTML = "";
+        resultDiv.innerHTML = "Request failed: " + error.message;
+    }
+});
+</script>
+
+</body>
+</html>

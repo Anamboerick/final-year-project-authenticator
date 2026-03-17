@@ -16,8 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import render
+
+def webcam_login_page(request):
+    return render(request, "webcam_login.html")
+def dashboard(request):
+    return render(request, "dashboard.html")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("authentication.urls")),
+    path("", webcam_login_page),
+    path("dashboard/", dashboard),
 ]
