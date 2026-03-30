@@ -23,8 +23,6 @@
         width: 100%;
         max-width: 640px;
         margin-top: 15px;
-        overflow: hidden;
-        border-radius: 12px;
     }
 
     video {
@@ -38,30 +36,13 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 38%;
-        height: 70%;
+        width: 260px;
+        height: 330px;
         transform: translate(-50%, -50%);
-        border: 4px dashed red;
+        border: 3px dashed rgba(0, 255, 0, 0.8);
         border-radius: 50% / 45%;
         pointer-events: none;
         box-sizing: border-box;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        display: none;
-    }
-
-    .face-guide.red{
-        border-color: red;
-        box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
-    }
-
-    .face-guide.yellow{
-        border-color: orange;
-        box-shadow: 0 0 15px rgba(255, 165, 0, 0.5);
-    }
-
-    .face-guide.green{
-        border-color: limegreen;
-        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
     }
 
     input, button {
@@ -99,7 +80,7 @@
 
 <div class="video-wrapper">
     <video id="video" autoplay playsinline></video>
-    <div class="face-guide" id="faceGuide"></div>
+    <div class="face-guide"></div>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
@@ -122,7 +103,6 @@ const instructionDiv = document.getElementById("instruction");
 const progressDiv = document.getElementById("progress");
 const resultDiv = document.getElementById("result");
 const usernameInput = document.getElementById("username");
-const faceGuide = document.getElementById("faceGuide");
 
 let streamStarted = false;
 let streamRef = null;
@@ -175,8 +155,6 @@ document.getElementById("startCamera").addEventListener("click", async () => {
         video.srcObject = stream;
         streamStarted = true;
 
-        faceGuide.style.display = "block";
-
         instructionDiv.innerHTML = "Camera started. Align your face inside the guide.";
         progressDiv.innerHTML = "Waiting for you to begin verification.";
         resultDiv.innerHTML = "Result will appear here.";
@@ -214,7 +192,6 @@ faceMesh.onResults((results) => {
     };
 
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-        faceGuide.className = "face-guide red";
         return;
     }
 
@@ -225,22 +202,14 @@ faceMesh.onResults((results) => {
     const avgEAR = (leftEAR + rightEAR) / 2;
 
     const nose = face[1];
-    const centeredX = nose.x > 0.40 && nose.x < 0.60;
-    const centeredY = nose.y > 0.30 && nose.y < 0.70;
-
-    let centered = centeredX && centeredY;
+    const centeredX = nose.x > 0.35 && nose.x < 0.65;
+    const centeredY = nose.y > 0.25 && nose.y < 0.75;
 
     latestFaceData = {
         faceDetected: true,
-        centered: centered,
+        centered: centeredX && centeredY,
         eyeRatio: avgEAR
     };
-
-    if (centered) {
-        faceGuide.className = "face-guide green";
-    } else {
-        faceGuide.className = "face-guide yellow";
-    }
 
     if (!verifying) {
         return;
@@ -390,3 +359,4 @@ document.getElementById("verifyIdentity").addEventListener("click", async () => 
 
 </body>
 </html>
+What changed
