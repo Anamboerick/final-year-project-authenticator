@@ -68,7 +68,7 @@ def authenticate_user(request):
 
     stored_encoding = pickle.loads(user.face_encoding)
     distance = face_recognition.face_distance([stored_encoding], encodings[0])[0]
-    threshold = 0.42
+    threshold = 0.4
 
     return Response({
         "status": "Access Granted" if distance < threshold else "Access Denied",
@@ -155,7 +155,7 @@ def authenticate_user_multiframe(request):
         except Exception:
             continue
 
-    if valid_frames <2:
+    if valid_frames ==0:
         recent_attempts = LoginAttempt.objects.filter(
             username=username,
             timestamp__gte=timezone.now() - timedelta(minutes=2)
@@ -173,8 +173,8 @@ def authenticate_user_multiframe(request):
         )
         return Response({"error": "No face detected in any frame"}, status=400)
 
-    average_distance = min (distances)
-    threshold = 0.42
+    average_distance = sum(distances) / len(distances)
+    threshold = 0.4
     final_status = "Access Granted" if average_distance < threshold else "Access Denied"
 
     recent_attempts = LoginAttempt.objects.filter(
@@ -205,7 +205,7 @@ def authenticate_user_multiframe(request):
     if fail_count >= 3:
         suspicious = True
 
-    if average_distance >= 0.50:
+    if average_distance >= 0.55:
         suspicious = True
 
     return Response({
@@ -226,6 +226,7 @@ def login_statistics(request):
 
     suspicious_attempts = LoginAttempt.objects.filter(
         status="Access Denied",
+        timestamp__gte=timezone.now() - timedelta(minutes=5)
     ).count()
 
     avg_distance = LoginAttempt.objects.exclude(
@@ -238,4 +239,21 @@ def login_statistics(request):
         "failed_logins": failed,
         "suspicious_attempts": suspicious_attempts,
         "average_distance": avg_distance
+    })
+@api_view(["GET"])
+def far_statistics(request):
+    total_denied = LoginAttempt.objects.filter(status="Access Denied").count()
+    false_accepts = LoginAttempt.objects.filter(
+        status="Access Granted",
+        suspicious=True
+    ).count()
+
+    far = 0
+    if total_denied + false_accepts > 0:
+        far = false_accepts / (total_denied + false_accepts)
+
+    return Response({
+        "false_accepts": false_accepts,
+        "total_denied_attempts": total_denied,
+        "far": far
     })

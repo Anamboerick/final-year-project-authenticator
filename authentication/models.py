@@ -21,6 +21,7 @@ class LoginAttempt(models.Model):
     attempt_count =models.IntegerField(default=1)
 
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    suspicious = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
