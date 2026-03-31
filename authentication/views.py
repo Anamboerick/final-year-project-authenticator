@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import UserProfile, LoginAttempt
+from django.db import models
 
 
 def get_client_ip(request):
@@ -216,4 +217,26 @@ def authenticate_user_multiframe(request):
         "liveness_passed": liveness_passed,
         "attempt_count": recent_attempts + 1,
         "suspicious": suspicious
+    })
+@api_view(["GET"])
+def login_statistics(request):
+    total = LoginAttempt.objects.count()
+    success = LoginAttempt.objects.filter(status="Access Granted").count()
+    failed = LoginAttempt.objects.filter(status="Access Denied").count()
+
+    suspicious_attempts = LoginAttempt.objects.filter(
+        status="Access Denied",
+        timestamp__gte=timezone.now() - timedelta(minutes=5)
+    ).count()
+
+    avg_distance = LoginAttempt.objects.exclude(
+        average_distance=None
+    ).aggregate(avg=models.Avg("average_distance"))["avg"]
+
+    return Response({
+        "total_attempts": total,
+        "successful_logins": success,
+        "failed_logins": failed,
+        "suspicious_attempts": suspicious_attempts,
+        "average_distance": avg_distance
     })
