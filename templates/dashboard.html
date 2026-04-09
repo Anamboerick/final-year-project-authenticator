@@ -2,10 +2,65 @@
 <html>
 <head>
     <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .report-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
 </head>
 <body>
 
 <h1>Authentication Successful</h1>
-<p>Welcome to the secure dashboard.</p>
+<p>Welcome, <span id="display-username"></span></p>
+
+<!-- Admin only section -->
+<div id="admin-section" style="display:none;">
+    <p>You are logged in as <strong>Admin</strong></p>
+    <a href="/api/report/" target="_blank">
+        <button class="btn report-btn">Download Security Report</button>
+    </a>
+</div>
+
+<!-- Logout button for everyone -->
+<button class="btn logout-btn" onclick="endSession()">Logout</button>
+
+<script>
+    // Get username from sessionStorage (set during login)
+    const username = sessionStorage.getItem("username");
+
+    // Display username
+    document.getElementById("display-username").textContent = username || "User";
+
+    // Show admin section only for erick
+    if (username === "erick") {
+        document.getElementById("admin-section").style.display = "block";
+    }
+
+    // End session and go back to login
+    function endSession() {
+        sessionStorage.clear();
+        window.location.href = "/";
+    }
+</script>
+
 </body>
 </html>

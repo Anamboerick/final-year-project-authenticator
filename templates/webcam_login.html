@@ -375,6 +375,7 @@ document.getElementById("verifyIdentity").addEventListener("click", async () => 
 
         if (data.status === "Access Granted") {
             instructionDiv.innerHTML = `<span class="success">Authentication successful. Redirecting...</span>`;
+            sessionStorage.setItem("username", username); // ← the only new line added
             setTimeout(() => {
                 window.location.href = "/dashboard/";
             }, 1500);
