@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome — University Voting System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container { width: 100%; max-width: 700px; text-align: center; }
+
+        .logo {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.15);
+            border: 2px solid rgba(59,130,246,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 24px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 50px;
+            padding: 6px 18px;
+            margin-bottom: 20px;
+        }
+
+        .badge span {
+            color: #94a3b8;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            color: #f1f5f9;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        h1 span { color: #3b82f6; }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: rgba(15,23,42,0.8);
+            border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 16px;
+            padding: 20px 16px;
+        }
+
+        .feature-icon { font-size: 24px; margin-bottom: 10px; }
+
+        .feature-title {
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .feature-desc { color: #475569; font-size: 12px; line-height: 1.5; }
+
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            background: rgba(59,130,246,0.8);
+            color: #f1f5f9;
+            border: 1px solid rgba(59,130,246,0.5);
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .btn-login:hover { background: rgba(59,130,246,1); }
+
+        .security-note {
+            color: #334155;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        .footer { color: #1e293b; font-size: 12px; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">🏛️</div>
+
+    <div class="badge">
+        <span>Secure Voting Platform</span>
+    </div>
+
+    <h1>University <span>Voting</span><br>Authentication System</h1>
+    <p class="subtitle">
+        A pattern-based biometric authentication system ensuring<br>
+        secure and verified access to the university voting platform.
+    </p>
+
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon">🔬</div>
+            <div class="feature-title">Facial Recognition</div>
+            <div class="feature-desc">Multi-frame biometric identity verification</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">👁️</div>
+            <div class="feature-title">Liveness Detection</div>
+            <div class="feature-desc">Blink-based anti-spoofing protection</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <div class="feature-title">Anomaly Detection</div>
+            <div class="feature-desc">Isolation Forest behavioural analysis</div>
+        </div>
+    </div>
+
+    <a href="http://localhost:5173" class="btn-login">
+        🔐 Proceed to Authentication
+    </a>
+
+    <p class="security-note">
+        🔒 Your biometric data is processed locally and never stored in plain text
+    </p>
+</div>
+
+<p class="footer">Pattern-Based Authentication System — University Voting Security</p>
+
+</body>
+</html>

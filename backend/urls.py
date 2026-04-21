@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
+from django.views.generic import TemplateView
 
 def webcam_login_page(request):
     return render(request, "webcam_login.html")
@@ -28,4 +29,6 @@ urlpatterns = [
     path("api/", include("authentication.urls")),
     path("", webcam_login_page),
     path("dashboard/", dashboard),
+    path("", TemplateView.as_view(template_name="welcome.html"), name="welcome"),
+    path("dashboard/", TemplateView.as_view(template_name="dashboard.html"), name="dashboard"),
 ]

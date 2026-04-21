@@ -16,6 +16,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 def get_client_ip(request):
@@ -325,6 +326,9 @@ def generate_report(request):
     elements.append(Paragraph("Experimental Security Evaluation Report", styles["Heading2"]))
     elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["Normal"]))
     elements.append(Spacer(1, 20))
+    tz_name = request.GET.get('tz', 'Africa/Nairobi')
+    tz = ZoneInfo(tz_name)
+    generated_at = datetime.now(tz).strftime('%Y-%m-%d %H:%M')
 
     # Section 1 - System Overview
     elements.append(Paragraph("1. System Overview", styles["Heading2"]))
@@ -450,3 +454,7 @@ def generate_report(request):
 
     doc.build(elements)
     return response
+@api_view(["GET"])
+def check_admin(request):
+    username = request.GET.get("user", "")
+    return Response({"is_admin": username == "erick"})

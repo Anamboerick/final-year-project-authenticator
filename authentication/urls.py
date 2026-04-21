@@ -11,4 +11,5 @@ urlpatterns = [
     path("far/", views.far_statistics, name="far_statistics"),
     path("anomaly/", views.anomaly_statistics, name="anomaly_statistics"), 
     path("report/", views.generate_report, name="generate_report"),
+    path("api/check-admin/", views.check_admin, name="check_admin"),
 ]

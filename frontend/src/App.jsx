@@ -59,7 +59,7 @@ export default function ReactFaceAuthFrontend() {
           setProgress("Adjusting position...");
           return;
         }
-        setInstruction("Perfect. Now blink once slowly.");
+        setInstruction("Perfect. Now blink Prolonged.");
         setProgress(`Eye ratio: ${avgEAR.toFixed(3)}`);
         if (avgEAR < 0.18) {
           eyesClosedFramesRef.current += 1;
@@ -105,6 +105,18 @@ export default function ReactFaceAuthFrontend() {
     } catch (error) {
       setInstruction(`Camera error: ${error.message}`);
     }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraStarted(false);
+    setFaceGuideColor("red");
+    setInstruction("Camera stopped. Click Start Camera to begin again.");
+    setProgress("");
   };
 
   const resetAttempt = () => {
@@ -155,39 +167,44 @@ export default function ReactFaceAuthFrontend() {
     setProgress("Preparing capture...");
     await sleep(500);
 
-  const canvas = canvasRef.current;
-const video = videoRef.current;
-const context = canvas.getContext("2d");
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const context = canvas.getContext("2d");
 
-// Use actual video dimensions instead of hardcoded values
-canvas.width = video.videoWidth || 640;
-canvas.height = video.videoHeight || 480;
+    // Use actual video dimensions
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
 
-const formData = new FormData();
-formData.append("username", username.trim());
-formData.append("liveness_passed", "true");
+    const formData = new FormData();
+    formData.append("username", username.trim());
+    formData.append("liveness_passed", "true");
 
-setLoading(true);
-for (let i = 0; i < 3; i++) {
-  // Wait for video to be ready
-  await sleep(200);
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-  const blob = await new Promise((resolve) =>
-    canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95)
-  );
+    setLoading(true);
 
-  // Check blob is not empty
-  if (!blob || blob.size < 1000) {
-    setInstruction("Frame capture failed. Ensure camera is active.");
-    setLoading(false);
-    return;
-  }
+    for (let i = 0; i < 3; i++) {
+      await sleep(200);
 
-  formData.append("images", blob, `frame_${i + 1}.jpg`);
-  setProgress(`Captured frame ${i + 1} of 3...`);
-  await sleep(400);
-}
+      // Draw UNMIRRORED to canvas — mirror is visual only
+      // Reset any transforms before drawing
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      context.restore();
+
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95)
+      );
+
+      if (!blob || blob.size < 1000) {
+        setInstruction("Frame capture failed. Ensure camera is active.");
+        setLoading(false);
+        return;
+      }
+
+      formData.append("images", blob, `frame_${i + 1}.jpg`);
+      setProgress(`Captured frame ${i + 1} of 3...`);
+      await sleep(400);
+    }
 
     setProgress("Sending to server for verification...");
     verifyingRef.current = false;
@@ -212,10 +229,8 @@ for (let i = 0; i < 3; i++) {
 
       if (data.status === "Access Granted") {
         setInstruction("Identity verified. Redirecting to dashboard...");
-        setProgress("");
-        sessionStorage.setItem("username", username.trim());
         setTimeout(() => {
-          window.location.href = "http://127.0.0.1:8000/dashboard/";
+          window.location.href = `http://127.0.0.1:8000/dashboard/?user=${username.trim()}`;
         }, 2000);
       } else {
         setInstruction("Authentication failed. Please reset and try again.");
@@ -261,7 +276,11 @@ for (let i = 0; i < 3; i++) {
             border: "1px solid rgba(59,130,246,0.3)",
             borderRadius: 50, padding: "6px 18px", marginBottom: 16,
           }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: cameraStarted ? "#22c55e" : "#94a3b8", boxShadow: cameraStarted ? "0 0 8px #22c55e" : "none" }} />
+            <div style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: cameraStarted ? "#22c55e" : "#94a3b8",
+              boxShadow: cameraStarted ? "0 0 8px #22c55e" : "none"
+            }} />
             <span style={{ color: "#94a3b8", fontSize: 13, letterSpacing: 2, textTransform: "uppercase" }}>
               {cameraStarted ? "System Active" : "System Standby"}
             </span>
@@ -270,7 +289,7 @@ for (let i = 0; i < 3; i++) {
             Biometric Identity Verification
           </h1>
           <p style={{ color: "#64748b", fontSize: 14, marginTop: 8 }}>
-            University Voting Authentication System — Pattern-Based Facial Recognition
+            General Authenticator System — Pattern-Based Facial Recognition
           </p>
         </div>
 
@@ -288,7 +307,10 @@ for (let i = 0; i < 3; i++) {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               <div>
-                <label style={{ color: "#94a3b8", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+                <label style={{
+                  color: "#94a3b8", fontSize: 12, letterSpacing: 1,
+                  textTransform: "uppercase", display: "block", marginBottom: 8
+                }}>
                   Voter ID / Username
                 </label>
                 <input
@@ -308,6 +330,7 @@ for (let i = 0; i < 3; i++) {
 
               {/* Buttons */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
                 <button onClick={startCamera} style={{
                   padding: "12px 20px", fontSize: 14, fontWeight: 600,
                   background: cameraStarted ? "rgba(30,41,59,0.6)" : "rgba(59,130,246,0.8)",
@@ -316,6 +339,18 @@ for (let i = 0; i < 3; i++) {
                   letterSpacing: 0.5,
                 }}>
                   {cameraStarted ? "🟢 Camera Running" : "📷 Start Camera"}
+                </button>
+
+                <button onClick={stopCamera} disabled={!cameraStarted} style={{
+                  padding: "12px 20px", fontSize: 14, fontWeight: 600,
+                  background: !cameraStarted ? "rgba(30,41,59,0.3)" : "rgba(239,68,68,0.1)",
+                  color: !cameraStarted ? "#334155" : "#ef4444",
+                  border: `1px solid ${!cameraStarted ? "rgba(100,116,139,0.2)" : "rgba(239,68,68,0.3)"}`,
+                  borderRadius: 10,
+                  cursor: !cameraStarted ? "not-allowed" : "pointer",
+                  letterSpacing: 0.5,
+                }}>
+                  🛑 Stop Camera
                 </button>
 
                 <button onClick={verifyIdentity} disabled={loading} style={{
@@ -339,7 +374,7 @@ for (let i = 0; i < 3; i++) {
                 </button>
               </div>
 
-              {/* Status panels */}
+              {/* Instruction panel */}
               <div style={{
                 background: "rgba(30,41,59,0.6)",
                 border: "1px solid rgba(59,130,246,0.15)",
@@ -349,6 +384,7 @@ for (let i = 0; i < 3; i++) {
                 <p style={{ color: "#cbd5e1", fontSize: 14, margin: 0, lineHeight: 1.5 }}>{instruction}</p>
               </div>
 
+              {/* Progress panel */}
               {progress && (
                 <div style={{
                   background: "rgba(30,41,59,0.6)",
@@ -402,7 +438,16 @@ for (let i = 0; i < 3; i++) {
                 border: `2px solid ${faceGuideColor === "green" ? "rgba(34,197,94,0.5)" : faceGuideColor === "yellow" ? "rgba(245,158,11,0.5)" : "rgba(239,68,68,0.3)"}`,
                 background: "#000", transition: "border-color 0.3s",
               }}>
-                <video ref={videoRef} autoPlay playsInline style={{ width: "100%", display: "block" }} />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  style={{
+                    width: "100%",
+                    display: "block",
+                    transform: "scaleX(-1)", // mirror for display only
+                  }}
+                />
                 {cameraStarted && (
                   <div style={{
                     position: "absolute", top: "50%", left: "50%",
@@ -482,7 +527,7 @@ for (let i = 0; i < 3; i++) {
 
         {/* Footer */}
         <p style={{ textAlign: "center", color: "#334155", fontSize: 12, marginTop: 20 }}>
-          Pattern-Based Authentication System — University Voting Security
+          Pattern-Based Authentication System — General System Security
         </p>
       </div>
 
